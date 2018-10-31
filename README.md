@@ -9,9 +9,22 @@ and extra data associated with them.  This is intended for supporting
 certain machine learning applications involving strings and grammatical
 learning.
 
-## Installation
+## Getting started
 
-XXX for now, install from github repository
+### Installation
+
+For now, install from the [github repository](https://github.com/tatuylonen/tokentree).
+
+### Running tests
+
+This package includes tests written using the ``unittest`` framework.
+They can be run using, for example, ``nose``, which can be installed
+using ``pip3 install nose``.
+
+To run the tests, just use the following command in the top-level directory:
+```
+nosetests
+```
 
 ## Usage
 
