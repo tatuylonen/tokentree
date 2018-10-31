@@ -20,7 +20,7 @@ setup(name="tokentree",
       packages=["tokentree"],
       setup_requires=["cython",
                       "setuptools>=18.0"],
-      ext_modules=[Extension("ctokentree",
+      ext_modules=[Extension("tokentree.ctokentree",
                              sources=["tokentree/ctokentree.pyx"])],
       classifiers=[
           "Development Status :: 3 - Alpha",
