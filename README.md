@@ -1,6 +1,6 @@
 # Tokentree
 
-An optimized tree of integer tokens with counts and extra data
+An optimized tree of integer tokens with counts and extra data in each node
 
 ## Overview
 
@@ -125,6 +125,15 @@ if node is None:
     print("Not found")
 print(node.get_count(), node.get_token(), node.get_extra())
 ```
+
+### Counting tokens
+
+The ``get_token_count(token)`` method on the tree returns the number
+of times that the given token has been added to the tree (in any
+position in any sequence), or when ``count`` is used when adding, the
+sum of all counts for all occurrences of the token.
+
+This function merely retrieves precomputed data, so it is quite fast.
 
 ### Tree-level information functions
 

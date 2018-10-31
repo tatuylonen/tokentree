@@ -68,7 +68,6 @@ cdef class TokenTree(object):
     """A class for trees of nodes used for parsing.  Any node can have
     additional information attached."""
     cdef object root
-    cdef long distinct
     cdef dict token_counts
     cdef object merge_extra
     cdef object merge_final
@@ -76,7 +75,6 @@ cdef class TokenTree(object):
     def __init__(self, merge_extra=None, merge_final=None):
         self.root = Node(0)
         self.root.count = 0
-        self.distinct = 0
         self.token_counts = {}
         if merge_extra is None:
             merge_extra = _dummy_merge
@@ -92,7 +90,6 @@ cdef class TokenTree(object):
         """Adds without extra data."""
         assert isinstance(seq, (tuple, list))
         node = self.root
-        distinct = False
         node.count += count
         for i in range(len(seq)):
             token = seq[i]
@@ -116,7 +113,6 @@ cdef class TokenTree(object):
             if next_node is None:
                 next_node = Node(token)
                 next_node.count = count
-                distinct = True
                 if n is None:
                     node.next = next_node
                 elif isinstance(n, dict):
@@ -127,15 +123,12 @@ cdef class TokenTree(object):
             else:
                 next_node.count += count
             node = next_node
-        if distinct:
-            self.distinct += 1
         return node
 
     def _add_with_extra(self, seq, extra, double count):
         """Adds with extra data."""
         assert isinstance(seq, (tuple, list))
         node = self.root
-        distinct = False
         node.count += count
         node.extra = self.merge_extra(node.extra, extra, count)
         for i in range(len(seq)):
@@ -160,7 +153,6 @@ cdef class TokenTree(object):
             if next_node is None:
                 next_node = Node(token)
                 next_node.count = count
-                distinct = True
                 if n is None:
                     node.next = next_node
                 elif isinstance(n, dict):
@@ -175,8 +167,6 @@ cdef class TokenTree(object):
                 node.extra = self.merge_extra(node.extra, extra, count)
             else:
                 node.extra = self.merge_final(node.extra, extra, count)
-        if distinct:
-            self.distinct += 1
         return node
 
     def add(self, seq, extra=None, double count=1):
@@ -199,6 +189,14 @@ cdef class TokenTree(object):
     def get_count(self):
         """Returns the number of times self.add() has been called."""
         return self.root.count
+
+    def get_token_count(self, token):
+        """Returns the number of time the given token has been added (in
+        any position in any sequence)."""
+        assert isinstance(token, int)
+        if token in self.token_counts:
+            return self.token_counts[token]
+        return 0
 
     def find(self, seq):
         """Looks up a node for the given sequence.  This returns None if the

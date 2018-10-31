@@ -21,6 +21,13 @@ class TreeTests(unittest.TestCase):
         t.add((3, 2))
         assert t.get_root()
         assert t.get_count() == 7
+        assert t.get_distinct() == 4
+        assert t.get_token_count(0) == 0
+        assert t.get_token_count(-112121) == 0
+        assert t.get_token_count(1) == 6
+        assert t.get_token_count(3) == 6
+        assert t.get_token_count(4) == 2
+        assert t.get_token_count(2) == 6
         assert t.find((5, 6)) is None
         assert t.find((3, 2)) is not None
         assert t.find([3,]) is not None
@@ -138,6 +145,10 @@ class TreeTests(unittest.TestCase):
         assert ht["a"] == 7
         assert ht["b"] == 4
         assert ht[("a", "b")] == 2
+        assert t.get_token_count(7) == 2
+        assert t.get_token_count(1) == 11
+        t.add((6, 6, 6), count=10)
+        assert t.get_token_count(6) == 30
 
     def test_final(self):
         t = TokenTree(merge_final=count_merge)
