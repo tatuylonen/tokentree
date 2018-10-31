@@ -8,6 +8,17 @@
 import math
 
 
+def count_merge(ht, key, count):
+    """Merges new extra data to existing extra data in a node."""
+    if ht is None:
+        return {key: count}
+    if key in ht:
+        ht[key] += count
+        return ht
+    ht[key] = count
+    return ht
+
+
 cdef class Node(object):
     cdef public double count
     cdef public int token
@@ -17,19 +28,28 @@ cdef class Node(object):
     def __init__(self, int token):
         self.token = token
         self.next = None
-        self.count = 1
+        self.count = 0
         self.extra = None
 
     cpdef have_children(self):
+        """Returns True if the node has children."""
         return self.next is not None
 
     cpdef get_token(self):
+        """Returns the token of the node (an integer)."""
         return self.token
 
     cpdef get_count(self):
+        """Returns the count of the node.  Note that this is floating point."""
         return self.count
 
-    def iter_next(self):
+    cpdef get_extra(self):
+        """Returns extra data associated with the node (the return value
+        of the last call to merge_extra or merge_final for the node)."""
+        return self.extra
+
+    def __iter__(self):
+        """Iterates over children of the node."""
         n = self.next
         if n is None:
             return
@@ -40,7 +60,7 @@ cdef class Node(object):
         yield n
 
 
-def _dummy_merge(a, b):
+def _dummy_merge(a, b, count):
     return None
 
 
@@ -61,7 +81,10 @@ cdef class TokenTree(object):
         if merge_extra is None:
             merge_extra = _dummy_merge
         if merge_final is None:
-            merge_final = _dummy_merge
+            if merge_extra:
+                merge_final = merge_extra
+            else:
+                merge_final = _dummy_merge
         self.merge_extra = merge_extra
         self.merge_final = merge_final
 
@@ -114,7 +137,7 @@ cdef class TokenTree(object):
         node = self.root
         distinct = False
         node.count += count
-        node.extra = self.merge_extra(node.extra, extra)
+        node.extra = self.merge_extra(node.extra, extra, count)
         for i in range(len(seq)):
             token = seq[i]
             # Look up the next node
@@ -149,9 +172,9 @@ cdef class TokenTree(object):
                 next_node.count += count
             node = next_node
             if i < len(seq) - 1:
-                node.extra = self.merge_extra(node.extra, extra)
+                node.extra = self.merge_extra(node.extra, extra, count)
             else:
-                node.extra = self.merge_final(node.extra, extra)
+                node.extra = self.merge_final(node.extra, extra, count)
         if distinct:
             self.distinct += 1
         return node
@@ -202,14 +225,14 @@ cdef class TokenTree(object):
         performs a depth-first iteration."""
         def iter_fn():
             q = []
-            for next_node in sorted(self.root.iter_next(),
+            for next_node in sorted(self.root,
                                     key=lambda x: x.token,
                                     reverse=True):
                 q.append(((next_node.token,), next_node))
             while q:
                 seq, node = q.pop()
                 yield seq, node
-                for next_node in sorted(node.iter_next(),
+                for next_node in sorted(node,
                                         key=lambda x: x.token,
                                         reverse=True):
                     q.append((seq + (next_node.token,), next_node))

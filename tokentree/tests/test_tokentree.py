@@ -3,7 +3,7 @@ import pickle
 import random
 import base64
 import unittest
-from tokentree import TokenTree
+from tokentree import TokenTree, count_merge
 
 import psutil
 import os
@@ -42,7 +42,7 @@ class TreeTests(unittest.TestCase):
             assert node.have_children() or node.get_count() <= 4
         assert list(sorted(vals)) == [1, 2, 3, 4]
 
-    def test_random(self):
+    def test_speed(self):
         count = 100000
         vals = list(tuple(random.randrange(100)
                           for i in range(0, random.randrange(10) + 2))
@@ -59,7 +59,7 @@ class TreeTests(unittest.TestCase):
         print("Memory usage: {:.3f} MB"
               "".format(mb))
         assert mb < 100
-        assert count / dur > 50000  # Might fail on a slow machine
+        assert count / dur > 50000  # Might fail on a very slow machine
 
     def test_pickle(self):
         t = TokenTree()
@@ -90,7 +90,7 @@ class TreeTests(unittest.TestCase):
         assert node.get_token() == 1
         assert node.get_count() == 2
         assert node
-        lst = list(sorted((x for x in node.iter_next()),
+        lst = list(sorted((x for x in node),
                           key=lambda x: x.get_token()))
         assert len(lst) == 2
         assert lst[0].get_token() == 2
@@ -99,10 +99,63 @@ class TreeTests(unittest.TestCase):
         assert lst[1].get_count() == 1
         node = t.find((3, 2))
         assert node.get_count() == 5
-        lst = list(sorted((x for x in node.iter_next()),
+        lst = list(sorted((x for x in node),
                           key=lambda x: x.get_token()))
         assert len(lst) == 1
         assert lst[0].get_token() == 1
         assert lst[0].get_count() == 4
 
-# add _ before node.add, node.step (remove add?)
+    def test_empty_seq(self):
+        t = TokenTree()
+        t.add(())
+        t.add(())
+        node = t.get_root()
+        assert node.get_count() == 2
+        assert len(list(node)) == 0
+
+    def test_extra(self):
+        t = TokenTree(merge_extra=count_merge)
+        t.add([1, 2], extra="a", count=3)
+        t.add([2, 7], extra=("a", "b"), count=2)
+        t.add([1, 3], extra="a", count=4)
+        t.add([1, 4], extra="b", count=4)
+        node = t.find([1])
+        ht = node.get_extra()
+        assert len(ht) == 2
+        assert ht["a"] == 7
+        assert ht["b"] == 4
+        node = t.find([1, 2])
+        ht = node.get_extra()
+        assert len(ht) == 1
+        assert ht["a"] == 3
+        node = t.find([2, 7])
+        ht = node.get_extra()
+        assert len(ht) == 1
+        assert ht[("a", "b")] == 2
+        node = t.find(())
+        ht = node.get_extra()
+        assert len(ht) == 3
+        assert ht["a"] == 7
+        assert ht["b"] == 4
+        assert ht[("a", "b")] == 2
+
+    def test_final(self):
+        t = TokenTree(merge_final=count_merge)
+        t.add([1, 2], extra="a", count=3)
+        t.add([2, 7], extra=("a", "b"), count=2)
+        t.add([1, 3], extra="a", count=4)
+        t.add([1, 4], extra="b", count=4)
+        node = t.find([1])
+        ht = node.get_extra()
+        assert ht is None
+        node = t.find([1, 2])
+        ht = node.get_extra()
+        assert len(ht) == 1
+        assert ht["a"] == 3
+        node = t.find([2, 7])
+        ht = node.get_extra()
+        assert len(ht) == 1
+        assert ht[("a", "b")] == 2
+        node = t.find(())
+        ht = node.get_extra()
+        assert ht is None
