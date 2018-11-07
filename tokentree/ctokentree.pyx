@@ -5,18 +5,7 @@
 #
 # Copyright (c) 2018 Tatu Ylonen.  See LICENSE and https://ylonen.org
 
-import math
-
-
-def count_merge(ht, key, count):
-    """Merges new extra data to existing extra data in a node."""
-    if ht is None:
-        return {key: count}
-    if key in ht:
-        ht[key] += count
-        return ht
-    ht[key] = count
-    return ht
+#cython: language_level=3
 
 
 cdef class Node(object):
@@ -45,7 +34,7 @@ cdef class Node(object):
 
     cpdef get_extra(self):
         """Returns extra data associated with the node (the return value
-        of the last call to merge_extra or merge_final for the node)."""
+        of the last call to merge_extra for the node)."""
         return self.extra
 
     def __iter__(self):
@@ -60,31 +49,19 @@ cdef class Node(object):
         yield n
 
 
-def _dummy_merge(a, b, count):
-    return None
-
-
 cdef class TokenTree(object):
     """A class for trees of nodes used for parsing.  Any node can have
     additional information attached."""
     cdef object root
     cdef dict token_counts
     cdef object merge_extra
-    cdef object merge_final
 
-    def __init__(self, merge_extra=None, merge_final=None):
+    def __init__(self, merge_extra=None):
+        assert merge_extra is None or callable(merge_extra)
         self.root = Node(0)
         self.root.count = 0
         self.token_counts = {}
-        if merge_extra is None:
-            merge_extra = _dummy_merge
-        if merge_final is None:
-            if merge_extra:
-                merge_final = merge_extra
-            else:
-                merge_final = _dummy_merge
         self.merge_extra = merge_extra
-        self.merge_final = merge_final
 
     def _add_no_extra(self, seq, double count):
         """Adds without extra data."""
@@ -130,7 +107,7 @@ cdef class TokenTree(object):
         assert isinstance(seq, (tuple, list))
         node = self.root
         node.count += count
-        node.extra = self.merge_extra(node.extra, extra, count)
+        node.extra = self.merge_extra(seq, 0, node.extra, extra, count)
         for i in range(len(seq)):
             token = seq[i]
             # Look up the next node
@@ -163,21 +140,19 @@ cdef class TokenTree(object):
             else:
                 next_node.count += count
             node = next_node
-            if i < len(seq) - 1:
-                node.extra = self.merge_extra(node.extra, extra, count)
-            else:
-                node.extra = self.merge_final(node.extra, extra, count)
+            node.extra = self.merge_extra(seq, i + 1, node.extra, extra, count)
         return node
 
     def add(self, seq, extra=None, double count=1):
         """Adds the given sequence to the tree, increasing the counts of the
         nodes on the path.  This adds nodes if the sequence did not
-        previously exist.  This returns the node for the sequence.
-        If ``extra`` is not None, this calls ``self.merge_extra`` for
-        each node in the path and ``self.merge_final`` for the final node
-        (if they are not provided, the extra of the last node is set to
-        ``extra``, but nothing is done to intermediate nodes)."""
+        previously exist.  This returns the node for the sequence.  If
+        ``extra`` is not None, this calls ``self.merge_extra(seq, i,
+        old, new, count)`` for each node in the path."""
+        assert isinstance(seq, (list, tuple))
+        assert isinstance(count, (int, float))
         if extra is not None:
+            assert self.merge_extra
             self._add_with_extra(seq, extra, count)
         else:
             self._add_no_extra(seq, count)
@@ -236,3 +211,11 @@ cdef class TokenTree(object):
                     q.append((seq + (next_node.token,), next_node))
 
         return iter_fn()
+
+    def __str__(self):
+        """Converts the tree to a string for debugging."""
+        parts = []
+        for seq, node in self:
+            parts.append("  {}: {}: {}"
+                         "".format(seq, node.get_count(), node.get_extra()))
+        return "\n".join(parts)

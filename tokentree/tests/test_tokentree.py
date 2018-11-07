@@ -1,12 +1,28 @@
+import os
+import psutil
 import time
 import pickle
 import random
 import base64
 import unittest
-from tokentree import TokenTree, count_merge
+from tokentree import TokenTree
 
-import psutil
-import os
+
+
+def merge_fn1(seq, i, ht, key, count):
+    """Merges new extra data to existing extra data in a node."""
+    if ht is None:
+        return {key: count}
+    if key in ht:
+        ht[key] += count
+    else:
+        ht[key] = count
+    return ht
+
+
+def merge_fn2(seq, i, old, new, count):
+    return i
+
 
 class TreeTests(unittest.TestCase):
 
@@ -21,7 +37,6 @@ class TreeTests(unittest.TestCase):
         t.add((3, 2))
         assert t.get_root()
         assert t.get_count() == 7
-        assert t.get_distinct() == 4
         assert t.get_token_count(0) == 0
         assert t.get_token_count(-112121) == 0
         assert t.get_token_count(1) == 6
@@ -121,7 +136,7 @@ class TreeTests(unittest.TestCase):
         assert len(list(node)) == 0
 
     def test_extra(self):
-        t = TokenTree(merge_extra=count_merge)
+        t = TokenTree(merge_extra=merge_fn1)
         t.add([1, 2], extra="a", count=3)
         t.add([2, 7], extra=("a", "b"), count=2)
         t.add([1, 3], extra="a", count=4)
@@ -150,23 +165,11 @@ class TreeTests(unittest.TestCase):
         t.add((6, 6, 6), count=10)
         assert t.get_token_count(6) == 30
 
-    def test_final(self):
-        t = TokenTree(merge_final=count_merge)
-        t.add([1, 2], extra="a", count=3)
-        t.add([2, 7], extra=("a", "b"), count=2)
-        t.add([1, 3], extra="a", count=4)
-        t.add([1, 4], extra="b", count=4)
-        node = t.find([1])
-        ht = node.get_extra()
-        assert ht is None
-        node = t.find([1, 2])
-        ht = node.get_extra()
-        assert len(ht) == 1
-        assert ht["a"] == 3
-        node = t.find([2, 7])
-        ht = node.get_extra()
-        assert len(ht) == 1
-        assert ht[("a", "b")] == 2
-        node = t.find(())
-        ht = node.get_extra()
-        assert ht is None
+    def test_extra2(self):
+        t = TokenTree(merge_extra=merge_fn2)
+        path = [9, 7, 5, 5]
+        t.add(path, extra="x", count=10)
+        for i in range(len(path) + 1):
+            prefix = path[:i]
+            node = t.find(prefix)
+            assert node.get_extra() == len(prefix)

@@ -66,24 +66,12 @@ The tree is created using the ``TokenTree()`` constructor.  This
 constructor accepts the following keyword arguments:
 
 * ``merge_extra``: a function to merge the ``extra`` argument in a
-  newly added node to the information already in a tree node.  The
-  function is called as ``merge_extra(old_data, extra, count)``.  For the
-  first call, ``old_data`` will be None.  This should return the new
-  data.  Default is ``None``.
-* ``merge_final``: like ``merge_extra``, but this function is used for
-  the last node of the sequence.  It defaults to ``merge_extra`` if
-  not specified or ``None``.
-
-Note that ``merge_extra`` adds ``extra`` to each node on the path,
-whereas ``merge_final`` only adds it to the final node.  If only
-``merge_extra`` is provided, then ``merge_final`` defaults to
-``merge_extra``.
-
-For convenience, a function ``tokentree.count_merge`` is provided,
-which will maintain in each node a dictionary keyed by the ``extra``,
-whose value is the sum of all ``count`` arguments from the additions
-with that value for ``extra``.  It requires ``extra`` to be a hashable
-value.
+  newly added node to the information already in a tree node.  This
+  should return the new data.  Default is ``None``.  The function is
+  called as ``merge_extra(seq, i, old_data, extra, count)``.  For the
+  first call, ``old_data`` will be None.  ``seq`` is the sequence
+  being added; ``i`` is the position at the sequence (0 means at tree
+  root, ``len(seq)`` means inserting the last node).
 
 ### Enumerating sequences from the tree
 
