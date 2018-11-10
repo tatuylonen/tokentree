@@ -51,6 +51,8 @@ class TreeTests(unittest.TestCase):
         vals = set()
         for seq, node in lst:
             assert isinstance(seq, tuple)
+            if not seq:
+                continue
             assert seq[0] in (1, 3)
             assert seq not in seen
             if len(seq) > 1:
@@ -134,6 +136,10 @@ class TreeTests(unittest.TestCase):
         node = t.get_root()
         assert node.get_count() == 2
         assert len(list(node)) == 0
+        lst = list(t)
+        assert len(lst) == 1
+        assert lst[0][0] == ()
+        assert lst[0][1] == t.get_root()
 
     def test_extra(self):
         t = TokenTree(merge_extra=merge_fn1)

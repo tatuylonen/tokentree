@@ -195,13 +195,9 @@ cdef class TokenTree(object):
     def __iter__(self):
         """Iterates over all sequences of nodes in the tree.  At each
         iteration, this returns ((sequence of tokens), node).  This
-        performs a depth-first iteration."""
+        performs a depth-first iteration, starting from the empty sequence."""
         def iter_fn():
-            q = []
-            for next_node in sorted(self.root,
-                                    key=lambda x: x.token,
-                                    reverse=True):
-                q.append(((next_node.token,), next_node))
+            q = [((), self.root)]
             while q:
                 seq, node = q.pop()
                 yield seq, node

@@ -22,6 +22,7 @@ setup(name="tokentree",
                       "setuptools>=18.0"],
       ext_modules=[Extension("tokentree.ctokentree",
                              sources=["tokentree/ctokentree.pyx"])],
+      test_suite="tokentree.tests",
       classifiers=[
           "Development Status :: 3 - Alpha",
           "Intended Audience :: Developers",
